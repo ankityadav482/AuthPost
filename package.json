@@ -1,0 +1,24 @@
+{
+  "name": "authpost",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ankityadav482/AuthPost.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ankityadav482/AuthPost/issues"
+  },
+  "homepage": "https://github.com/ankityadav482/AuthPost#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mongoose": "^8.18.1"
+  }
+}
