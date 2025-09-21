@@ -16,7 +16,8 @@ const postModel =  require('./models/post');
 
 const bcrypt = require('bcrypt')
 
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const post = require('./models/post');
 
 app.get('/',function(req,res){
     res.render('index');
@@ -27,9 +28,75 @@ app.get('/login', function(req,res){
 })
 
 app.get('/profile',isloggedIn, function(req,res){
-    console.log(req.user);
-    res.render('login');
+    userModel.findOne({email:req.user.email}).then(function(user){
+        user.populate("posts")
+        .then(function(user){
+        if (!user) return res.status(404).send("User not found");
+        res.render('profile', { user });
+    })
+    })
 })
+
+app.get('/like/:id', isloggedIn, function(req,res){
+    postModel.findOne({_id: req.params.id})
+    .populate("user")
+    .then(function(post){
+        if(!post) return res.status(404).send("Post not found");
+
+        if(post.likes.indexOf(req.user.userid) === -1){
+            // like add karo
+            post.likes.push(req.user.userid);
+        } else {
+            // like remove karo (unlike)
+            post.likes.splice(post.likes.indexOf(req.user.userid), 1);
+        }
+
+        post.save().then(function(){
+            res.redirect('/profile');
+        });
+    })
+});
+
+
+app.get('/edit/:id', isloggedIn, function(req,res){
+    postModel.findOne({_id: req.params.id})
+    .populate("user")
+    .then(function(post){
+        if (!post) return res.status(404).send("Post not found");
+        res.render('edit', { post });
+    })
+});
+
+app.post('/update/:id', isloggedIn, function(req,res){
+    postModel.findOneAndUpdate({_id: req.params.id},{content: req.body.content})
+    .then(function(post){
+        if (!post) return res.status(404).send("Post not found");
+        res.redirect('/profile');
+    })
+});
+
+
+
+app.post('/post', isloggedIn, function(req, res) {
+    let { content } = req.body;
+
+    userModel.findOne({ email: req.user.email })
+    .then(function(user) {
+        if (!user) return res.status(404).send("User not found");
+        postModel.create({
+            user: user._id,
+            content
+        })
+        .then(function(post) {
+            user.posts.push(post._id);
+            user.save()
+            .then(function() {
+                res.redirect('/profile');
+            })
+        })  
+    })
+});
+
 
 app.get('/logout',function(req,res){
     res.cookie("token","");
@@ -46,7 +113,7 @@ app.post('/login',function(req,res){
             if(result){
                 let token = jwt.sign({email:email , userid: user._id},"shhhh");
                 res.cookie("token",token);
-                res.status(200).send("you can login");
+                res.status(200).redirect("/profile");
             }
             else{
                 res.redirect("/login");
@@ -83,7 +150,7 @@ app.post('/register',function(req,res){
 })
 
 function isloggedIn(req,res,next){
-    if(req.cookies.token==="") res.send("You must be looged in");
+    if(req.cookies.token==="") res.redirect("/login");
     else{
         let data = jwt.verify(req.cookies.token,"shhhh");
         req.user = data;
